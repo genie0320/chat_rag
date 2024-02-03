@@ -18,6 +18,11 @@ from langchain_community.embeddings.sentence_transformer import (
 
 load_dotenv()
 
+
+# langsmith integration
+llm = ChatOpenAI()
+llm.invoke("Hello, world!")
+
 persist_db_path = "./db"
 
 
@@ -158,3 +163,5 @@ else:
         elif isinstance(message, HumanMessage):
             with st.chat_message("human"):
                 st.write(message.content)
+
+print("hello")
