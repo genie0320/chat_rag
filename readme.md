@@ -10,5 +10,10 @@
 3. 사용자의가 질문을 입력한다.
 4. 서비스는 공부했던 내용 중에서 질문과 관련이 있는 부분을 찾아 llm에게 넘기고, 답변을 생성한다. 
 
+## Feature
+- [ ] 종합 RAG (with langserve)
+- [ ] 스크래핑 데이터 RAG (with Agent)
+- [ ] 문서 RAG
+- [x] 웹사이트 RAG
 ## Change log
 v0.1 기본적인 RAG기능 구현 완료
