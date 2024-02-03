@@ -7,17 +7,22 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
+from langchain_community.embeddings.sentence_transformer import (
+    SentenceTransformerEmbeddings,
+)
+
 load_dotenv()
+
+persist_db_path = "./db"
 
 
 def get_vectorstore_from_url(url):
     # get the text in the website
-
     if "embedding_count" not in st.session_state:
         st.session_state.embedding_count = [
             "embedding",
@@ -35,7 +40,15 @@ def get_vectorstore_from_url(url):
     text_splitter = RecursiveCharacterTextSplitter()
     document_chunks = text_splitter.split_documents(documents)
 
-    db = Chroma.from_documents(document_chunks, OpenAIEmbeddings())
+    embedding = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+
+    db = Chroma.from_documents(
+        document_chunks, embedding, persist_directory=persist_db_path
+    )
+
+    with st.sidebar:
+        st.write(db)
+
     return db
 
 
@@ -77,10 +90,10 @@ def get_conversational_rag_chain(retriever_chain):
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
 
 
-def get_response(user_input):
+def get_response(user_input, db):
     # TODO: This part should be done in backend secene. NOT here.
     # initial setting
-    retriever_chain = get_context_retriever_chain(st.session_state.db)
+    retriever_chain = get_context_retriever_chain(db)
     conversation_rag_chain = get_conversational_rag_chain(retriever_chain)
 
     response = conversation_rag_chain.invoke(
@@ -89,10 +102,14 @@ def get_response(user_input):
     return response["answer"]
 
 
+def reset_db():
+    del st.session_state["db"]
+
+
 # App config
+
 st.set_page_config(page_title="Chat with websites", page_icon="🤖")
 st.title("Chat with website")
-
 
 # Sidebar
 with st.sidebar:
@@ -118,23 +135,20 @@ else:
     if "db" not in st.session_state:
         # Create conversational chain
         st.session_state.db = get_vectorstore_from_url(website_url)
-
-    # For debug
-    # with st.sidebar:
-    #     st.write(document_chunks)
+    # else:
+    #     with st.sidebar:
+    #         if st.button("Reset DB"):
+    #             reset_db()
+    #             st.write("Reset done.")
 
     # chat ui
     user_input = st.chat_input("무엇이 궁금하신가요?")
     if user_input is not None and user_input != "":
-        response = get_response(user_input)
+        response = get_response(user_input, st.session_state.db)
 
         # st.write(response)
         st.session_state.chat_history.append(HumanMessage(content=user_input))
         st.session_state.chat_history.append(AIMessage(content=response))
-
-    # For debug
-    # with st.sidebar:
-    #     st.write(st.session_state.chat_history)
 
     # conversation
     for message in st.session_state.chat_history:
