@@ -15,10 +15,6 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 load_dotenv()
 
 
-def get_response(user_input):
-    return "Loading..."
-
-
 def get_vectorstore_from_url(url):
     # get the text in the website
 
@@ -31,6 +27,7 @@ def get_vectorstore_from_url(url):
         with st.sidebar:
             for count in st.session_state.embedding_count:
                 st.write(count)
+                # TODO: 여기 카운트가 왜 안나오는지
 
     loader = WebBaseLoader(url)
     documents = loader.load()
@@ -44,6 +41,7 @@ def get_vectorstore_from_url(url):
 
 def get_context_retriever_chain(vector_store):
     llm = ChatOpenAI()
+
     retriever = vector_store.as_retriever()
 
     prompt = ChatPromptTemplate.from_messages(
@@ -64,6 +62,7 @@ def get_context_retriever_chain(vector_store):
 
 def get_conversational_rag_chain(retriever_chain):
     llm = ChatOpenAI()
+
     prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -78,6 +77,18 @@ def get_conversational_rag_chain(retriever_chain):
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
 
 
+def get_response(user_input):
+    # TODO: This part should be done in backend secene. NOT here.
+    # initial setting
+    retriever_chain = get_context_retriever_chain(st.session_state.db)
+    conversation_rag_chain = get_conversational_rag_chain(retriever_chain)
+
+    response = conversation_rag_chain.invoke(
+        {"chat_history": st.session_state.chat_history, "input": user_input}
+    )
+    return response["answer"]
+
+
 # App config
 st.set_page_config(page_title="Chat with websites", page_icon="🤖")
 st.title("Chat with website")
@@ -90,11 +101,14 @@ with st.sidebar:
 
 """
 https://python.langchain.com/docs/get_started/introduction
+
+what is LCEL?
 """
 
 if website_url is None or website_url == "":
     st.info("웹사이트 주소를 입력해주세요.")
 else:
+    # chat_history를 리로딩요소에서 제외하기 위해 st.session_state에 넣어준다.
     # chat_history가 variable이 아니라 str로 들어간다는 것에 주의.
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = [
@@ -109,25 +123,15 @@ else:
     # with st.sidebar:
     #     st.write(document_chunks)
 
-    # initial setting
-    retriever_chain = get_context_retriever_chain(st.session_state.db)
-
-    conversation_rag_chain = get_conversational_rag_chain(retriever_chain)
-
     # chat ui
     user_input = st.chat_input("무엇이 궁금하신가요?")
     if user_input is not None and user_input != "":
-        # response = get_response(user_input)
-        # st.session_state.chat_history.append(HumanMessage(content=user_input))
-        # st.session_state.chat_history.append(AIMessage(content=response))
-        response = conversation_rag_chain.invoke(
-            {"chat_history": st.session_state.chat_history, "input": user_input}
-        )
+        response = get_response(user_input)
 
-        retrieved_documents = retriever_chain.invoke(
-            {"chat_history": st.session_state.chat_history, "input": user_input}
-        )
-        st.write(retrieved_documents)
+        # st.write(response)
+        st.session_state.chat_history.append(HumanMessage(content=user_input))
+        st.session_state.chat_history.append(AIMessage(content=response))
+
     # For debug
     # with st.sidebar:
     #     st.write(st.session_state.chat_history)
