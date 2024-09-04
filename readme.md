@@ -1,4 +1,4 @@
 # Learn python
 
 # Projects
-[x] Scrap Naver finance.
+- [x] Scrap Naver finance.
