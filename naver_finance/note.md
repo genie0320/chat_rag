@@ -1,8 +1,13 @@
 # Scrap naver finance
 
 ## urlparse
+쓸 일이 있겠나 싶지만, url을 안전하게 unicode로 변환해준다.
+네이버의 경우, unicode로 변환하면 제대로 된 정보를 주지만, 디코드된 url을 던졌을 때는 그렇지 않았다. 하지만 다시 사용할 수 있을 것 같지 않아, 세션을 이용하는 다른 방법으로 우회해서 진행했다.
 ```python
 from urllib.parse import urlparse, urlunparse
+
+base_url = "https://finance.naver.com/sise/sise_market_sum.naver"
+page = 1
 
 parsed_url = urlparse(base_url)
     # ParseResult(
@@ -26,13 +31,3 @@ combined_url = urlunparse(
 )
 ```
 
-## 판다스의 놀라운 기능. 
-html에서 table을 뽑아와서 df로 만들어준다!!
-
-```python
-# encoding을 지정해줘야 한글이 안 깨진다.
-df = pd.read_html(combined_url, header=0, encoding="cp949")
-
-# 여러개의 table이 있는 경우에는 다음과 같이 순서를 지정.
-df = pd.read_html(combined_url, header=0, encoding="cp949")[1]
-```
