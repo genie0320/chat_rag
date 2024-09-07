@@ -1,31 +1,11 @@
 # %%
 import os
 import json
-import google_auth_oauthlib.flow
-import googleapiclient.discovery
-import googleapiclient.errors
 
+import get_youtube
+
+SECRETS = r"projects\Tube_manager\client_secret.json"
 scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
-
-# Disable OAuthlib's HTTPS verification when running locally.
-# *DO NOT* leave this option enabled in production.
-os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-
-
-def conn_yt_auth():
-    api_service_name = "youtube"
-    api_version = "v3"
-    client_secrets_file = r"projects\Tube_manager\client_secret.json"
-    # Get credentials and create an API client
-    flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-        client_secrets_file, scopes
-    )
-
-    credentials = flow.run_local_server(port=11196)
-
-    return googleapiclient.discovery.build(
-        api_service_name, api_version, credentials=credentials
-    )
 
 
 def saveToFile(contents, file_name):
@@ -44,7 +24,7 @@ def saveToFile(contents, file_name):
     print("file saved")
 
 
-def get_playlist(pageToken):
+def getPlaylist(pageToken):
     request = youtube.subscriptions().list(
         part="snippet,contentDetails",
         mine=True,
@@ -67,12 +47,13 @@ def getTitles(file_name):
 
 
 if __name__ == "__main__":
-    youtube = conn_yt_auth()
-    # %%
+    youtube = get_youtube.get_auth(SECRETS, scopes)
+
     nextPageToken = None
     result_file = r"projects\Tube_manager\result.json"
+
     while True:
-        response = get_playlist(nextPageToken)
+        response = getPlaylist(nextPageToken)
         saveToFile(response, result_file)
         nextPageToken = response["nextPageToken"]
 
